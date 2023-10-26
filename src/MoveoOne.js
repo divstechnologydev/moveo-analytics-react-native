@@ -1,25 +1,31 @@
+import axios from "axios";
+import { KEYS } from "./MoveoKeys";
+
 
 const PARAMS = {
     TOKEN: "token",
-    DISTINCT_ID: "distinctId",
-    ALIAS: "alias",
     CONTEXT_NAME: "contextName",
-    GROUP_KEY: "groupKey",
-    GROUP_ID: "groupID",
     PROPERTIES: "properties",
-    PROPERTY_NAME: "propertyName",
-    PROP: "prop",
-    NAME: "name",
-    CHARGE: "charge",
-    PROPERTY_VALUE: "property value",
     MOVEO_ANALYTICS: "MoveoOne analytics",
 }
 
+const API = {
+    URL: "https://beta.divstechnology.com/api/analytic/event"
+}
+
 const ERROR_MESSAGE = {
-    INVALID_OBJECT: " is not a valid json object",
-    INVALID_STRING: " is not a valid string",
-    REQUIRED_DOUBLE: " is not a valid number",
-    INSTANCE_NOT_CREATED: " instance is not created"
+    JSON_INVALID: " is not a valid json object",
+    STRING: " is not a valid string",
+    INSTANCE_NOT_CREATED: " instance is not created",
+    SEND_DATA_ERROR: "Failed to send data to server",
+}
+
+const SHORT_KEY = {
+    GROUP: "sg",
+    ELEMENT_ID: "eID",
+    ACTION: "eA",
+    TYPE: "eT",
+    VALUE: "eV"
 }
 
 export class MoveoOne {
@@ -28,8 +34,8 @@ export class MoveoOne {
 
     constructor(token) {
         
-        if (!StringHelper.isValid(token)) {
-            StringHelper.raiseError('TOKEN ERROR');
+        if (!StringVerifier.isValid(token)) {
+            StringVerifier.raiseError('TOKEN ERROR');
         }
         this.token = token;
         this.buffer = [];
@@ -39,6 +45,7 @@ export class MoveoOne {
         this.started = false;
         this.userId = '';
         this.context = '';
+        this.log = false;
     }
 
     static getInstance(token) {
@@ -61,7 +68,21 @@ export class MoveoOne {
      *
      */
     identify(userId) {
-        this.userId = userId
+        this.userId = userId;
+    }
+
+    setLogging(enabled) {
+        this.log = enabled;
+    }
+
+    setFlushInterval(interval) {
+        if (interval < 5000 || interval > 60000) {
+            if (this.log) {
+                console.log("interval not allowed, needs to be [5s, 60s] in milliseconds");
+            }
+        } else {
+            this.flushInterval = interval
+        }
     }
 
 
@@ -127,16 +148,16 @@ export class MoveoOne {
         const updatedProps = {}
         for (const key in prop) {
             let newKey = key;
-            if (key === 'semanticGroup') {
-                newKey = 'sg';
-            } else if (key === 'elementId') {
-                newKey = 'eID';
-            } else if (key === 'action') {
-                newKey = 'eA';
-            } else if (key === 'type') {
-                newKey = 'eT';
-            } else if (key === 'value') {
-                newKey = 'eV';
+            if (key === KEYS.GROUP) {
+                newKey = SHORT_KEY.GROUP;
+            } else if (key === KEYS.ELEMENT_ID) {
+                newKey = SHORT_KEY.ELEMENT_ID;
+            } else if (key === KEYS.ACTION) {
+                newKey = SHORT_KEY.ACTION;
+            } else if (key === KEYS.TYPE) {
+                newKey = SHORT_KEY.TYPE;
+            } else if (key === KEYS.VALUE) {
+                newKey = SHORT_KEY.VALUE;
             } else {
                 newKey = key;
             }
@@ -148,16 +169,25 @@ export class MoveoOne {
     flush() {
         this.clearFlushTimeout()
         if (this.buffer.length > 0) {
-            for (let i = 0; i < this.buffer.length; i++) {
-                this.sendDataToServer()
-            }
+            const dataForSending = [...this.buffer];
+            this.sendDataToServer(dataForSending)
             this.buffer = [];
         }
 
     }
 
-    sendDataToServer() {
-        console.log(this.buffer[i]);
+    sendDataToServer(dataToSend) {
+        this.storeContent(dataToSend)
+            .then((data) => {
+                if (this.log) {
+                    console.log('response: ', data);
+                }
+            })
+            .catch((error) => {
+                if (this.log) {
+                    console.log('error: ', error);
+                }
+            });
     }
 
     setFlushTimeout() {
@@ -174,83 +204,79 @@ export class MoveoOne {
     }
 
     verifyContext(context) {
-        if (!StringHelper.isValid(context)) {
-            StringHelper.raiseError(PARAMS.CONTEXT_NAME);
+        if (!StringVerifier.isValid(context)) {
+            StringVerifier.raiseError(PARAMS.CONTEXT_NAME);
         } 
     }
 
     verifyProperties(properties) {
-        if (!ObjectHelper.isValidOrUndefined(properties)) {
-            ObjectHelper.raiseError(PARAMS.PROPERTIES);
+        if (!JSONObjectVerifier.isValidOrUndefined(properties)) {
+            JSONObjectVerifier.raiseError(PARAMS.PROPERTIES);
         }
     }
 
-    /**
-     * Track an event with specific groups.
-     */
-    trackWithGroups(eventName, properties, groups) {
-        if (!StringHelper.isValid(eventName)) {
-            StringHelper.raiseError(PARAMS.CONTEXT_NAME);
-        }
-        if (!ObjectHelper.isValidOrUndefined(properties)) {
-            ObjectHelper.raiseError(PARAMS.PROPERTIES);
-        }
+    storeContent = (data) => {
+        return new Promise((resolve, reject) => {
+    
+            const config = {
+                headers: {
+                    Authorization: this.token
+                }
+            };
 
-
+            const payload = {
+                events: data
+            };
+    
+            try {
+                axios
+                    .post(API.URL, payload, config)
+                    .then((res) => {
+                        resolve(res.data);
+                    })
+                    .catch((err) => {
+                        reject(err.message);
+                    });
+            } catch (error) {
+                reject(SEND_DATA_ERROR);
+            }
+        });
     }
 }
 
 
-class StringHelper {
-    /**
-      Check whether the parameter is not a blank string.
-     */
+class StringVerifier {
+    
     static isValid(str) {
         return typeof str === "string" && !(/^\s*$/).test(str);
     }
 
-    /**
-      Check whether the parameter is undefined or not a blank string.
-     */
     static isValidOrUndefined(str) {
-        return str === undefined || StringHelper.isValid(str);
+        return str === undefined || StringVerifier.isValid(str);
     }
 
-    /**
-      Raise a string validation error.
-     */
     static raiseError(paramName) {
-        throw new Error(`${paramName}${ERROR_MESSAGE.INVALID_STRING}`);
+        throw new Error(`${paramName}${ERROR_MESSAGE.STRING}`);
     }
 }
 
-class ObjectHelper {
-    /**
-      Check whether the parameter is an object.
-     */
+class JSONObjectVerifier {
+    
     static isValid(obj) {
         return typeof obj === "object";
     }
 
-    /**
-      Check whether the parameter is undefined or an object.
-     */
     static isValidOrUndefined(obj) {
-        return obj === undefined || ObjectHelper.isValid(obj);
+        return obj === undefined || JSONObjectVerifier.isValid(obj);
     }
 
-    /**
-      Raise an object validation error.
-     */
     static raiseError(paramName) {
-        throw new Error(`${paramName}${ERROR_MESSAGE.INVALID_OBJECT}`);
+        throw new Error(`${paramName}${ERROR_MESSAGE.JSON_INVALID}`);
     }
 }
 
 class InstanceHelper {
-    /**
-      Raise an object validation error.
-     */
+
     static raiseError(paramName) {
         throw new Error(`${paramName}${ERROR_MESSAGE.INSTANCE_NOT_CREATED}`);
     }

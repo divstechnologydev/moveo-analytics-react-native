@@ -13,7 +13,6 @@ export class MoveoText extends React.Component {
     }
 
     onMount(title) {
-        console.log('props: ', this.props)
         const tickObject = {
             [KEYS.ELEMENT_ID]: this.props.elementId,
             [KEYS.ACTION]: ACTION.VIEW,

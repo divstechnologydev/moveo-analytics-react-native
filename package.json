@@ -1,12 +1,17 @@
 {
   "name": "moveo-one-analytics-react-native",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Moveo One analytics library for React Native app",
   "main": "index.js",
   "scripts": {
     "test": "echo \"test\""
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/divstechnologydev/moveo-analytics-react-native"
+  },
   "dependencies": {
+    "axios": "^1.5.1",
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "react-native": "0.72.5",
@@ -14,10 +19,13 @@
   },
   "keywords": [
     "react-native",
-    "react-component",
+    "react",
     "ios",
     "android",
-    "analytics"
+    "analytics",
+    "tracking",
+    "sdk",
+    "moveo"
   ],
   "author": "Vladimir Jeftovic",
   "license": "MIT"
