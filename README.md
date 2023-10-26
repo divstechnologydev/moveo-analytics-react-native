@@ -68,7 +68,7 @@ More precisely, the context is usually a screen. There are no obstacles in creat
 Context has dual events: start and stop
 ```
 moveoInstance.start('<SCREEN>');
-moveoOne.stop('<SCREEN>')
+moveoInstance.stop('<SCREEN>')
 ```
 And that is the reason why it's harder to track context across multiple screens.
 
