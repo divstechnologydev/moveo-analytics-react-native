@@ -10,7 +10,7 @@ const PARAMS = {
 }
 
 const API = {
-    URL: "https://beta.divstechnology.com/api/analytic/event"
+    URL: "https://api.divstechnology.com/api/analytic/event"
 }
 
 const ERROR_MESSAGE = {
