@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_URL = "https://api.divstechnology.com/api/analytic/event";
+const API_URL = "https://api.moveo.one/api/analytic/event";
 
 export class MoveoOne {
     static instance = null;
@@ -63,7 +63,6 @@ export class MoveoOne {
             this.flushOrRecord(true);
             this.started = true;
             this.context = context;
-            this.verifyContext(context);
             this.sessionId = `sid_${this.generateUUID()}`;
             this.addEventToBuffer(context, "start_session", {}, this.userId, metadata);
             this.flushOrRecord(false);
@@ -94,8 +93,6 @@ export class MoveoOne {
         if (!this.started) {
             this.start(context, metadata);
         }
-        this.verifyContext(context);
-        this.verifyProps(properties);
         this.addEventToBuffer(context, "track", properties, this.userId, metadata);
         this.flushOrRecord(false);
     }
@@ -105,7 +102,6 @@ export class MoveoOne {
             this.verifyContext(this.context);
             this.start(this.context, metadata);
         }
-        this.verifyProps(properties);
         this.addEventToBuffer(this.context, "track", properties, this.userId, metadata);
         this.flushOrRecord(false);
     }
