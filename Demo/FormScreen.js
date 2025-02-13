@@ -2,10 +2,7 @@ import { useState, useEffect } from 'react';
 import { Button, StyleSheet, Text, TextInput, View } from 'react-native';
 import { generate, count } from "random-words";
 import { MoveoOne } from 'moveo-one-analytics-react-native'
-import { MoveoText } from 'moveo-one-analytics-react-native'
-import { MoveoTextInput } from 'moveo-one-analytics-react-native'
 import { MoveoFlatList } from 'moveo-one-analytics-react-native'
-import { MoveoButton } from 'moveo-one-analytics-react-native'
 import { KEYS, TYPE, ACTION } from 'moveo-one-analytics-react-native'
 
 export default function FormScreen({ onStarted }) {
@@ -30,7 +27,7 @@ export default function FormScreen({ onStarted }) {
     const text3Title = 'Make selection'
     const selectionATitle = 'option A'
     const selectionBTitle = 'option B'
-
+    const selectionCTitle = 'option C'
 
     useEffect(() => {
 
@@ -47,7 +44,15 @@ export default function FormScreen({ onStarted }) {
             [KEYS.ELEMENT_ID]: 'text_field_word',
             [KEYS.ACTION]: ACTION.VIEW,
             [KEYS.TYPE]: TYPE.TEXT,
-            [KEYS.VALUE]: text1Title.length
+            [KEYS.VALUE]: text1Title
+        });
+
+        moveoOne.tick({
+            semanticGroup: 'sg_2',
+            elementId: 'text_field_selection',
+            type: 'text',
+            action: 'view',
+            value: text3Title
         });
 
         moveoOne.tick({
@@ -55,7 +60,7 @@ export default function FormScreen({ onStarted }) {
             elementId: 'text_field_numbers',
             type: 'text',
             action: 'view',
-            value: text2Title.length
+            value: text2Title
         });
     }, []);
 
@@ -150,9 +155,16 @@ export default function FormScreen({ onStarted }) {
             <View style={styles.inputWrapper}>
                 <Text>{text2Title}</Text>
                 <View style={styles.inputContainer}>
-                    <MoveoTextInput semanticGroup='sg_2' elementId='text_edit_x' style={styles.textInputSmaller} value={xValue} placeholder='X' onChangeText={
+                    <TextInput style={styles.textInputSmaller} value={xValue} placeholder='X' onChangeText={
                         (enteredText) => {
                             xInputHandler(enteredText);
+                            moveoOne.tick({
+                                semanticGroup: 'sg_2',
+                                elementId: 'text_edit_x',
+                                action: 'change',
+                                type: 'text_input',
+                                value: enteredText.length
+                            })
                         }
                     } />
 
@@ -186,7 +198,8 @@ export default function FormScreen({ onStarted }) {
 
             <View style={styles.inputWrapper}>
                 {/* <Text>{text3Title}</Text> */}
-                <MoveoText semanticGroup='sg_2' elementId='text_field_selection'>Make selection</MoveoText>
+                <Text>Make selection</Text>
+                
                 <View style={styles.selectionContainer}>
                     <Button title={selectionATitle} onPress={
                         () => {
@@ -196,7 +209,7 @@ export default function FormScreen({ onStarted }) {
                                 elementId: 'selection_A',
                                 action: 'click',
                                 type: 'button',
-                                value: selectionATitle.length,
+                                value: selectionATitle,
                             });
                         }
                     } />
@@ -208,14 +221,21 @@ export default function FormScreen({ onStarted }) {
                                 elementId: 'selection_B',
                                 action: 'click',
                                 type: 'button',
-                                value: selectionBTitle.length,
+                                value: selectionBTitle,
                             });
                         }
 
                     } />
-                    <MoveoButton semanticGroup='sg_3' elementId='selection_C' title='option C' onPress={
+                    <Button title='option C' onPress={
                         () => {
                             addOptionC();
+                            moveoOne.tick({
+                                semanticGroup: 'sg_3',
+                                elementId: 'selection_C',
+                                action: 'click',
+                                type: 'button',
+                                value: selectionCTitle,
+                            });
                         }
 
                     } />
