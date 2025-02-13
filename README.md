@@ -111,42 +111,6 @@ moveoInstance.tick({
 });
 ```
 
-#### Using Moveo Components
-
-We provide wrapped React Native components for easier tracking:
-
-```javascript
-import { 
-  MoveoText, 
-  MoveoTextInput, 
-  MoveoButton, 
-  MoveoFlatList 
-} from 'moveo-analytics-react-native';
-
-// Text component with automatic tracking
-<MoveoText 
-  semanticGroup="header_section" 
-  elementId="welcome_text"
->
-  Welcome to our app
-</MoveoText>
-
-// Input with tracking
-<MoveoTextInput
-  semanticGroup="form_section"
-  elementId="email_input"
-  value={email}
-  onChangeText={setEmail}
-/>
-
-// Button with automatic click tracking
-<MoveoButton
-  semanticGroup="actions"
-  elementId="submit_button"
-  title="Submit"
-  onPress={handleSubmit}
-/>
-```
 
 ### 5. Obtain API KEY
 
