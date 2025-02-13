@@ -1,196 +1,170 @@
 import axios from "axios";
-import { KEYS } from "./MoveoKeys";
 
-
-const PARAMS = {
-    TOKEN: "token",
-    CONTEXT_NAME: "contextName",
-    PROPERTIES: "properties",
-    MOVEO_ANALYTICS: "MoveoOne analytics",
-}
-
-const API = {
-    URL: "https://api.divstechnology.com/api/analytic/event"
-}
-
-const ERROR_MESSAGE = {
-    JSON_INVALID: " is not a valid json object",
-    STRING: " is not a valid string",
-    INSTANCE_NOT_CREATED: " instance is not created",
-    SEND_DATA_ERROR: "Failed to send data to server",
-}
-
-const SHORT_KEY = {
-    GROUP: "sg",
-    ELEMENT_ID: "eID",
-    ACTION: "eA",
-    TYPE: "eT",
-    VALUE: "eV"
-}
+const API_URL = "https://api.divstechnology.com/api/analytic/event";
 
 export class MoveoOne {
-
     static instance = null;
 
     constructor(token) {
-        
-        if (!StringVerifier.isValid(token)) {
-            StringVerifier.raiseError('TOKEN ERROR');
+        if (typeof token !== "string" || token.trim() === "") {
+            throw new Error("Invalid token provided");
         }
         this.token = token;
+        this.userId = "";
         this.buffer = [];
-        this.maxThreashold = 500;
-        this.flushInterval = 10 * 1000; //10s
+        this.logging = false;
+        this.flushInterval = 10 * 1000; // 10 seconds
+        this.maxThreshold = 500;
         this.flushTimeout = null;
         this.started = false;
-        this.userId = '';
-        this.context = '';
-        this.log = false;
+        this.context = "";
+        this.sessionId = "";
+        this.customPush = false;
     }
 
     static getInstance(token) {
-        if (MoveoOne.instance == null) {
-            MoveoOne.instance = new MoveoOne(token)
+        if (!MoveoOne.instance) {
+            MoveoOne.instance = new MoveoOne(token);
         }
-        return this.instance;
+        return MoveoOne.instance;
     }
 
-    static fetchInstance() {
-        if (MoveoOne.instance == null) {
-            InstanceHelper.raiseError(PARAMS.MOVEO_ANALYTICS);
-        }
-        return this.instance;
+    initialize(token) {
+        this.token = token;
     }
 
-    /**
-     * Associate all future calls to track() with the user identified by
-     * the given distinct id.
-     *
-     */
     identify(userId) {
         this.userId = userId;
     }
 
+    getToken() {
+        return this.token;
+    }
+
     setLogging(enabled) {
-        this.log = enabled;
+        this.logging = enabled;
     }
 
     setFlushInterval(interval) {
         if (interval < 5000 || interval > 60000) {
-            if (this.log) {
-                console.log("interval not allowed, needs to be [5s, 60s] in milliseconds");
-            }
+            this.log("Flush interval must be between 5000ms and 60000ms.");
         } else {
-            this.flushInterval = interval
+            this.flushInterval = interval;
         }
     }
 
+    isCustomFlush() {
+        return this.customPush;
+    }
 
-    start(context) {
+    start(context, metadata = {}) {
         if (!this.started) {
+            this.log("start");
             this.flushOrRecord(true);
             this.started = true;
-            this.context = context
+            this.context = context;
             this.verifyContext(context);
-            this.addEventToBuffer(context, 'start', {}, this.userId);
+            this.sessionId = `sid_${this.generateUUID()}`;
+            this.addEventToBuffer(context, "start_session", {}, this.userId, metadata);
             this.flushOrRecord(false);
         }
     }
 
-    stop(context) {
+    track(context, moveoOneData) {
+        this.log("track");
+        const properties = this.prepareProperties(moveoOneData);
+        this.trackInternal(context, properties, moveoOneData.metadata || {});
+    }
+
+    tick(moveoOneData) {
+        this.log("tick");
+        const properties = this.prepareProperties(moveoOneData);
+        this.tickInternal(properties, moveoOneData.metadata || {});
+    }
+
+    updateSessionMetadata(metadata) {
+        this.log("update session metadata");
         if (this.started) {
-            this.started = false;
-            this.verifyContext(context);
-            this.addEventToBuffer(context, 'stop', {}, this.userId);
-            this.flushOrRecord(true);
+            this.addEventToBuffer(this.context, "update_metadata", {}, this.userId, metadata);
+            this.flushOrRecord(false);
         }
     }
 
-    /**
-     * Track an event.
-     *
-     */
-    track(context, properties) {
+    trackInternal(context, properties, metadata) {
         if (!this.started) {
-            this.start(context);
+            this.start(context, metadata);
         }
         this.verifyContext(context);
-        this.verifyProperties(properties);
-        this.addEventToBuffer(context, 'track', properties, this.userId);
+        this.verifyProps(properties);
+        this.addEventToBuffer(context, "track", properties, this.userId, metadata);
         this.flushOrRecord(false);
     }
 
-    /**
-     * Tick an event if there is already started tracker
-     */
-    tick(properties) {
-        if (!this.started || this.context === '') {
+    tickInternal(properties, metadata) {
+        if (!this.context) {
             this.verifyContext(this.context);
-            this.start(this.context);
+            this.start(this.context, metadata);
         }
-        this.verifyProperties(properties);
-        this.addEventToBuffer(this.context, 'track', properties, this.userId);
+        this.verifyProps(properties);
+        this.addEventToBuffer(this.context, "track", properties, this.userId, metadata);
         this.flushOrRecord(false);
     }
-
 
     flushOrRecord(isStopOrStart) {
-        if (this.buffer.length >= this.maxThreashold || isStopOrStart) {
-            this.flush();
-        } else {
-            if (this.flushTimeout == null) {
-                this.setFlushTimeout();
+        if (!this.customPush) {
+            if (this.buffer.length >= this.maxThreshold || isStopOrStart) {
+                this.flush();
+            } else {
+                if (!this.flushTimeout) {
+                    this.setFlushTimeout();
+                }
             }
         }
     }
 
-    addEventToBuffer(context, type, prop, userId) {
-        const updatedProps = {}
-        for (const key in prop) {
-            let newKey = key;
-            if (key === KEYS.GROUP) {
-                newKey = SHORT_KEY.GROUP;
-            } else if (key === KEYS.ELEMENT_ID) {
-                newKey = SHORT_KEY.ELEMENT_ID;
-            } else if (key === KEYS.ACTION) {
-                newKey = SHORT_KEY.ACTION;
-            } else if (key === KEYS.TYPE) {
-                newKey = SHORT_KEY.TYPE;
-            } else if (key === KEYS.VALUE) {
-                newKey = SHORT_KEY.VALUE;
-            } else {
-                newKey = key;
-            }
-            updatedProps[newKey] = prop[key]
-        }
-        this.buffer.push({ c: context, type: type, prop: updatedProps, t: Date.now(), userId: userId })
+    addEventToBuffer(context, type, prop, userId, metadata) {
+        this.buffer.push({
+            c: context,
+            type: type,
+            userId: userId,
+            t: Date.now(),
+            prop: prop,
+            meta: metadata,
+            sId: this.sessionId
+        });
     }
 
     flush() {
-        this.clearFlushTimeout()
-        if (this.buffer.length > 0) {
-            const dataForSending = [...this.buffer];
-            this.sendDataToServer(dataForSending)
-            this.buffer = [];
+        if (!this.customPush) {
+            this.log("flush");
+            this.clearFlushTimeout();
+            if (this.buffer.length > 0) {
+                const dataToSend = [...this.buffer];
+                this.sendDataToServer(dataToSend);
+                this.buffer = [];
+            }
         }
+    }
 
+    customFlush() {
+        if (this.customPush) {
+            const dataToSend = [...this.buffer];
+            this.buffer = [];
+            return dataToSend;
+        }
+        return [];
     }
 
     sendDataToServer(dataToSend) {
-        this.storeContent(dataToSend)
-            .then((data) => {
-                if (this.log) {
-                    console.log('response: ', data);
-                }
-            })
-            .catch((error) => {
-                if (this.log) {
-                    console.log('error: ', error);
-                }
-            });
+        axios.post(API_URL, { events: dataToSend }, {
+            headers: { Authorization: this.token }
+        })
+        .then(response => this.log(response.data))
+        .catch(error => this.log(error));
     }
 
     setFlushTimeout() {
+        this.log("setting flush timeout");
         this.flushTimeout = setTimeout(() => {
             this.flush();
         }, this.flushInterval);
@@ -204,80 +178,56 @@ export class MoveoOne {
     }
 
     verifyContext(context) {
-        if (!StringVerifier.isValid(context)) {
-            StringVerifier.raiseError(PARAMS.CONTEXT_NAME);
-        } 
-    }
-
-    verifyProperties(properties) {
-        if (!JSONObjectVerifier.isValidOrUndefined(properties)) {
-            JSONObjectVerifier.raiseError(PARAMS.PROPERTIES);
+        if (typeof context !== "string" || context.trim() === "") {
+            throw new Error("Invalid context provided.");
         }
     }
 
-    storeContent = (data) => {
-        return new Promise((resolve, reject) => {
-    
-            const config = {
-                headers: {
-                    Authorization: this.token
-                }
-            };
+    verifyProps(props) {
+        if (typeof props !== "object" || props === null) {
+            throw new Error("Invalid properties provided.");
+        }
+    }
 
-            const payload = {
-                events: data
-            };
-    
-            try {
-                axios
-                    .post(API.URL, payload, config)
-                    .then((res) => {
-                        resolve(res.data);
-                    })
-                    .catch((err) => {
-                        reject(err.message);
-                    });
-            } catch (error) {
-                reject(SEND_DATA_ERROR);
-            }
+    log(msg) {
+        if (this.logging) {
+            console.log("MoveoOne ->", msg);
+        }
+    }
+
+    isStarted() {
+        return this.started;
+    }
+
+    getContext() {
+        return this.context;
+    }
+
+    prepareProperties(moveoOneData) {
+        let properties = {};
+        properties["sg"] = moveoOneData.semanticGroup || "";
+        properties["eID"] = moveoOneData.id || "";
+        properties["eA"] = moveoOneData.action || "";
+        properties["eT"] = moveoOneData.type || "";
+
+        if (typeof moveoOneData.value === "string") {
+            properties["eV"] = moveoOneData.value;
+        } else if (Array.isArray(moveoOneData.value)) {
+            properties["eV"] = moveoOneData.value.join(",");
+        } else if (typeof moveoOneData.value === "number") {
+            properties["eV"] = moveoOneData.value.toString();
+        } else {
+            properties["eV"] = "-";
+        }
+
+        return properties;
+    }
+
+    generateUUID() {
+        return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+            const r = (Math.random() * 16) | 0;
+            const v = c === "x" ? r : (r & 0x3) | 0x8;
+            return v.toString(16);
         });
-    }
-}
-
-
-class StringVerifier {
-    
-    static isValid(str) {
-        return typeof str === "string" && !(/^\s*$/).test(str);
-    }
-
-    static isValidOrUndefined(str) {
-        return str === undefined || StringVerifier.isValid(str);
-    }
-
-    static raiseError(paramName) {
-        throw new Error(`${paramName}${ERROR_MESSAGE.STRING}`);
-    }
-}
-
-class JSONObjectVerifier {
-    
-    static isValid(obj) {
-        return typeof obj === "object";
-    }
-
-    static isValidOrUndefined(obj) {
-        return obj === undefined || JSONObjectVerifier.isValid(obj);
-    }
-
-    static raiseError(paramName) {
-        throw new Error(`${paramName}${ERROR_MESSAGE.JSON_INVALID}`);
-    }
-}
-
-class InstanceHelper {
-
-    static raiseError(paramName) {
-        throw new Error(`${paramName}${ERROR_MESSAGE.INSTANCE_NOT_CREATED}`);
     }
 }
