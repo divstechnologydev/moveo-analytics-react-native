@@ -1,4 +1,4 @@
-# moveo-analytics-react-native
+# moveo-one-analytics-react-native
 
 <div align="center" style="text-align: center">
   <img src="https://github.com/divstechnologydev/moveo-analytics-react-native/assets/6665139/3755d4fc-d4bc-47dd-a543-9c131a38772c" height="150"/>
@@ -33,7 +33,7 @@ Moveo One React Native SDK is a pure JavaScript implementation of the Moveo One 
 #### Steps
 1. Install the package using npm:
 ```bash
-npm install moveo-analytics-react-native
+npm install moveo-one-analytics-react-native
 ```
 
 ### 2. Initialize
@@ -41,7 +41,7 @@ npm install moveo-analytics-react-native
 Initialization should be done at your app's entry point. To obtain a token, please contact us at: info@moveo.one and request an API token. We are working on bringing token creation to our dashboard, but for now, due to the early phase, contact us and we will be happy to provide you with an API token.
 
 ```javascript
-import { MoveoOne } from 'moveo-analytics-react-native';
+import { MoveoOne } from 'moveo-one-analytics-react-native';
 
 // Initialize with your token
 const moveoInstance = MoveoOne.getInstance('<YOUR_TOKEN>');
