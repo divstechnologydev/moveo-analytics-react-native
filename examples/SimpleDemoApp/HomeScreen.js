@@ -11,10 +11,27 @@ export const HomeScreen = ({ moveoInstance }) => {
   const [inputText, setInputText] = useState("");
 
   useEffect(() => {
+    // Initialize session first
     moveoInstance.start("main_screen", {
       app_version: "1.0.0",
       platform: "mobile",
     });
+
+    const timeout = setTimeout(() => {
+      moveoInstance.tick({
+        semanticGroup: "content_interactions",
+        id: "intro_paragraph",
+        type: "text",
+        action: "view",
+        value: "demo_description",
+        metadata: {
+          screen: "main_screen",
+          interaction_type: "impression",
+        },
+      });
+    }, 500);
+
+    return () => clearTimeout(timeout);
   }, [moveoInstance]);
 
   const handlePress = (buttonName) => {
@@ -33,8 +50,6 @@ export const HomeScreen = ({ moveoInstance }) => {
   };
 
   const handleInputEndEditing = () => {
-    console.log(`Input edited!`);
-
     moveoInstance.track("main_screen", {
       semanticGroup: "user_interactions",
       id: "main_input",
@@ -52,22 +67,7 @@ export const HomeScreen = ({ moveoInstance }) => {
     <View style={styles.mainContainer}>
       <Text style={styles.title}>Moveo One</Text>
       <View style={styles.contentContainer}>
-        <Text
-          style={styles.paragraph}
-          onPress={() => {
-            moveoInstance.tick({
-              semanticGroup: "content_interactions",
-              id: "intro_paragraph",
-              type: "text",
-              action: "press",
-              value: "demo_description",
-              metadata: {
-                screen: "main_screen",
-                interaction_type: "text_selection",
-              },
-            });
-          }}
-        >
+        <Text style={styles.paragraph}>
           This is an example React Native app made for demo purposes.
         </Text>
         <View style={styles.buttonGroup}>
