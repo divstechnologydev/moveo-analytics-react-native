@@ -10,58 +10,11 @@ import {
 export const HomeScreen = ({ moveoInstance }) => {
   const [inputText, setInputText] = useState("");
 
-  useEffect(() => {
-    // Initialize session first
-    moveoInstance.start("main_screen", {
-      app_version: "1.0.0",
-      platform: "mobile",
-    });
-
-    const timeout = setTimeout(() => {
-      moveoInstance.tick({
-        semanticGroup: "content_interactions",
-        id: "intro_paragraph",
-        type: "text",
-        action: "view",
-        value: "demo_description",
-        metadata: {
-          screen: "main_screen",
-          interaction_type: "impression",
-        },
-      });
-    }, 500);
-
-    return () => clearTimeout(timeout);
-  }, [moveoInstance]);
-
   const handlePress = (buttonName) => {
-    moveoInstance.track("main_screen", {
-      semanticGroup: "user_interactions",
-      id: "main_button",
-      type: "button",
-      action: "click",
-      value: "primary_action",
-      metadata: {
-        source: "home_screen",
-        button: buttonName,
-      },
-    });
     console.log(`${buttonName} clicked!`);
   };
 
-  const handleInputEndEditing = () => {
-    moveoInstance.track("main_screen", {
-      semanticGroup: "user_interactions",
-      id: "main_input",
-      type: "input",
-      action: "edit",
-      value: "text_entered",
-      metadata: {
-        source: "home_screen",
-        input_length: inputText.length,
-      },
-    });
-  };
+  const handleInputEndEditing = () => {};
 
   return (
     <View style={styles.mainContainer}>
