@@ -7,7 +7,7 @@ import {
   TextInput,
 } from "react-native";
 
-export const HomeScreen = ({ moveoInstance }) => {
+export const HomeScreen = () => {
   const [inputText, setInputText] = useState("");
 
   const handlePress = (buttonName) => {

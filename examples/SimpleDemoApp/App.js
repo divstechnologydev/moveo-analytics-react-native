@@ -5,7 +5,7 @@ import { HomeScreen } from "./HomeScreen";
 export default function App() {
   return (
     <>
-      <HomeScreen moveoInstance={moveoInstance} />
+      <HomeScreen />
       <StatusBar style="auto" />
     </>
   );
