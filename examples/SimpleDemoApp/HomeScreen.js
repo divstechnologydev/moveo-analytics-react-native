@@ -6,15 +6,46 @@ import {
   StyleSheet,
   TextInput,
 } from "react-native";
+import { MoveoOne } from 'moveo-one-analytics-react-native';
+
+const moveoInstance = MoveoOne.getInstance('<YOUR_SDK_TOKEN>');
 
 export const HomeScreen = () => {
   const [inputText, setInputText] = useState("");
 
+  useEffect(() => {
+    moveoInstance.tick({
+      semanticGroup: 'home_screen',
+      id: 'title_text',
+      type: 'text',
+      action: 'view',
+      value: 'Moveo One',
+      metadata: {}
+    });
+  }, []);
+
   const handlePress = (buttonName) => {
+    moveoInstance.track('home_screen', {
+      semanticGroup: 'button_group',
+      id: buttonName.toLowerCase().replace(' ', '_'),
+      type: 'button',
+      action: 'click',
+      value: buttonName,
+      metadata: {}
+    });
     console.log(`${buttonName} clicked!`);
   };
 
-  const handleInputEndEditing = () => {};
+  const handleInputEndEditing = () => {
+    moveoInstance.tick({
+      semanticGroup: 'home_screen',
+      id: 'input_field',
+      type: 'input',
+      action: 'input',
+      value: inputText,
+      metadata: {}
+    });
+  };
 
   return (
     <View style={styles.mainContainer}>
