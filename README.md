@@ -5,6 +5,7 @@
 </div>
 
 ## Table of Contents
+
 - [Introduction](#introduction)
 - Quick Start Guide
   - [Add Moveo One Analytics](#1-install-moveo-one-analytics)
@@ -27,11 +28,14 @@ Moveo One React Native SDK is a pure JavaScript implementation of the Moveo One 
 ### 1. Install Moveo One Analytics
 
 #### Prerequisites
+
 - React Native project
 - Node.js and npm installed
 
 #### Steps
+
 1. Install the package using npm:
+
 ```bash
 npm install moveo-one-analytics-react-native
 ```
@@ -41,13 +45,13 @@ npm install moveo-one-analytics-react-native
 Initialization should be done at your app's entry point. To obtain a token, please contact us at: info@moveo.one and request an API token. We are working on bringing token creation to our dashboard, but for now, due to the early phase, contact us and we will be happy to provide you with an API token.
 
 ```javascript
-import { MoveoOne } from 'moveo-one-analytics-react-native';
+import { MoveoOne } from "moveo-one-analytics-react-native";
 
 // Initialize with your token
-const moveoInstance = MoveoOne.getInstance('<YOUR_TOKEN>');
+const moveoInstance = MoveoOne.getInstance("<YOUR_TOKEN>");
 
 // Identify the current user
-moveoInstance.identify('<USER_ID>');
+moveoInstance.identify("<USER_ID>");
 ```
 
 The `<USER_ID>` is your tracking unique ID for the user who is using the app. It is used on Dashboard and WebHook to deliver calculated results, so you will need to maintain the correlation between this ID and your actual user ID.
@@ -74,14 +78,14 @@ A context represents a user interaction session, typically mapping to a screen o
 
 ```javascript
 // Start tracking a context
-moveoInstance.start('checkout_flow', {
-  version: '1.0.0',
-  abTest: 'variant_a'
+moveoInstance.start("checkout_flow", {
+  version: "1.0.0",
+  abTest: "variant_a",
 });
 
 // Update context metadata
 moveoInstance.updateSessionMetadata({
-  step: 'payment_details'
+  step: "payment_details",
 });
 ```
 
@@ -91,30 +95,30 @@ Track user interactions and view data:
 
 ```javascript
 // Track a button click
-moveoInstance.track('checkout_flow', {
-  semanticGroup: 'payment_section',
-  id: 'submit_button',
-  type: 'button',
-  action: 'click',
-  value: 'submit',
-  metadata: { step: 'final' }
+moveoInstance.track("checkout_flow", {
+  semanticGroup: "payment_section",
+  id: "submit_button",
+  type: "button",
+  action: "tap",
+  value: "submit",
+  metadata: { step: "final" },
 });
 
 // Track text view
 moveoInstance.tick({
-  semanticGroup: 'payment_section',
-  id: 'total_amount',
-  type: 'text',
-  action: 'view',
-  value: '199.99',
-  metadata: { currency: 'USD' }
+  semanticGroup: "payment_section",
+  id: "total_amount",
+  type: "text",
+  action: "appear",
+  value: "199.99",
+  metadata: { currency: "USD" },
 });
 ```
-
 
 ### 5. Obtain API KEY
 
 Contact info@moveo.one to obtain your API key. Include your:
+
 - Company name
 - Project description
 - Expected usage volume
@@ -127,29 +131,32 @@ Events are sent to our API in the following format:
 
 ```javascript
 {
-  events: [{
-    c: "context_name",
-    type: "track",
-    userId: "user_123",
-    t: 1234567890,
-    prop: {
-      sg: "semantic_group",
-      eID: "element_id",
-      eA: "action",
-      eT: "type",
-      eV: "value"
+  events: [
+    {
+      c: "context_name",
+      type: "track",
+      userId: "user_123",
+      t: 1234567890,
+      prop: {
+        sg: "semantic_group",
+        eID: "element_id",
+        eA: "action",
+        eT: "type",
+        eV: "value",
+      },
+      meta: {
+        // Custom metadata
+      },
+      sId: "session_id",
     },
-    meta: {
-      // Custom metadata
-    },
-    sId: "session_id"
-  }]
+  ];
 }
 ```
 
 #### Dashboard Access
 
 Once your data is being tracked, you can access your analytics through:
+
 1. Moveo One Dashboard https://app.moveo.one/
 2. Direct API access
 3. Webhook integrations

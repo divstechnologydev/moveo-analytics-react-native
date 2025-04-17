@@ -22,16 +22,48 @@ export const HomeScreen = ({ moveoInstance }) => {
         semanticGroup: "content_interactions",
         id: "intro_paragraph",
         type: "text",
-        action: "view",
+        action: "appear",
         value: "demo_description",
         metadata: {
           screen: "main_screen",
-          interaction_type: "impression",
+        },
+      });
+      moveoInstance.tick({
+        semanticGroup: "content_interactions",
+        id: "main_button",
+        type: "appear",
+        action: "view",
+        value: "main_button",
+        metadata: {
+          screen: "main_screen",
         },
       });
     }, 500);
 
-    return () => clearTimeout(timeout);
+    return () => {
+      clearTimeout(timeout);
+
+      moveoInstance.tick({
+        semanticGroup: "content_interactions",
+        id: "intro_paragraph",
+        type: "text",
+        action: "disappear",
+        value: "demo_description",
+        metadata: {
+          screen: "main_screen",
+        },
+      });
+      moveoInstance.tick({
+        semanticGroup: "content_interactions",
+        id: "main_button",
+        type: "button",
+        action: "disappear",
+        value: "main_button",
+        metadata: {
+          screen: "main_screen",
+        },
+      });
+    };
   }, [moveoInstance]);
 
   const handlePress = (buttonName) => {
@@ -39,7 +71,7 @@ export const HomeScreen = ({ moveoInstance }) => {
       semanticGroup: "user_interactions",
       id: "main_button",
       type: "button",
-      action: "click",
+      action: "tap",
       value: "primary_action",
       metadata: {
         source: "home_screen",
