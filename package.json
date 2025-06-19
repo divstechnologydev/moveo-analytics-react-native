@@ -1,6 +1,6 @@
 {
   "name": "moveo-one-analytics-react-native",
-  "version": "1.0.9",
+  "version": "1.0.10",
   "description": "Moveo One analytics library for React Native app",
   "main": "index.js",
   "scripts": {
