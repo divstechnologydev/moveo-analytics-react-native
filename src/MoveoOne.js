@@ -12,7 +12,6 @@ export class MoveoOne {
       throw new Error("Invalid token provided");
     }
     this.token = token;
-    this.userId = "";
     this.buffer = [];
     this.logging = false;
     this.flushInterval = 10 * 1000; // 10 seconds
@@ -33,10 +32,6 @@ export class MoveoOne {
 
   initialize(token) {
     this.token = token;
-  }
-
-  identify(userId) {
-    this.userId = userId;
   }
 
   getToken() {
@@ -76,7 +71,6 @@ export class MoveoOne {
         context,
         "start_session",
         {},
-        this.userId,
         modifiedMetadata
       );
       this.flushOrRecord(false);
@@ -102,7 +96,6 @@ export class MoveoOne {
         this.context,
         "update_metadata",
         {},
-        this.userId,
         metadata
       );
       this.flushOrRecord(false);
@@ -115,7 +108,6 @@ export class MoveoOne {
       this.buffer.push({
         c: this.context,
         type: "update_metadata",
-        userId: this.userId,
         t: Date.now(),
         prop: {},
         meta: {},
@@ -130,7 +122,7 @@ export class MoveoOne {
     if (!this.started) {
       this.start(context, metadata);
     }
-    this.addEventToBuffer(context, "track", properties, this.userId, metadata);
+    this.addEventToBuffer(context, "track", properties, metadata);
     this.flushOrRecord(false);
   }
 
@@ -143,7 +135,6 @@ export class MoveoOne {
       this.context,
       "track",
       properties,
-      this.userId,
       metadata
     );
     this.flushOrRecord(false);
@@ -161,11 +152,10 @@ export class MoveoOne {
     }
   }
 
-  addEventToBuffer(context, type, prop, userId, metadata) {
+  addEventToBuffer(context, type, prop, metadata) {
     this.buffer.push({
       c: context,
       type: type,
-      userId: userId,
       t: Date.now(),
       prop: prop,
       meta: metadata,

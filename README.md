@@ -49,14 +49,7 @@ import { MoveoOne } from "moveo-one-analytics-react-native";
 
 // Initialize with your token
 const moveoInstance = MoveoOne.getInstance("<YOUR_TOKEN>");
-
-// Identify the current user
-moveoInstance.identify("<USER_ID>");
 ```
-
-The `<USER_ID>` is your tracking unique ID for the user who is using the app. It is used on Dashboard and WebHook to deliver calculated results, so you will need to maintain the correlation between this ID and your actual user ID.
-
-Note: Do not provide personally identifiable information to Moveo One - we don't store or need that data, so it's better to use anonymous identifiers.
 
 ### 3. Setup
 
