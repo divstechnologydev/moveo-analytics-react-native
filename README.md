@@ -1,157 +1,495 @@
-# moveo-one-analytics-react-native
+# Moveo Analytics React Native Library
 
-<div align="center" style="text-align: center">
-  <img src="https://github.com/divstechnologydev/moveo-analytics-react-native/assets/6665139/3755d4fc-d4bc-47dd-a543-9c131a38772c" height="150"/>
-</div>
+<img src="https://www.moveo.one/assets/og_white.png" alt="Moveo Analytics Logo" width="200" />
+
+**Current version: 1.0.11**
+
+A powerful analytics library for React Native applications that provides comprehensive user interaction tracking and behavioral analysis through the Moveo One platform.
 
 ## Table of Contents
 
-- [Introduction](#introduction)
-- Quick Start Guide
-  - [Add Moveo One Analytics](#1-install-moveo-one-analytics)
-  - [Initialize](#2-initialize)
-  - [Setup](#3-setup)
-  - [Track Data](#4-track-data)
-  - [Obtain API KEY](#5-obtain-api-key)
-  - [Use Results](#6-use-results)
+1. [Introduction](#introduction)
+2. [Quick Start Guide](#quick-start-guide)
+   - [Prerequisites](#prerequisites)
+   - [Installation](#installation)
+   - [Library Initialization](#library-initialization)
+   - [Setup](#setup)
+   - [Metadata and Additional Metadata](#metadata-and-additional-metadata)
+   - [Track Data](#track-data)
+3. [Event Types and Actions](#event-types-and-actions)
+4. [Comprehensive Example Usage](#comprehensive-example-usage)
+5. [Obtain API Key](#obtain-api-key)
+6. [Dashboard Access](#dashboard-access)
+7. [Support](#support)
 
 ## Introduction
 
-Welcome to the official Moveo One React Native library.
+Moveo Analytics React Native Library is designed to capture and analyze user interactions within your React Native application. It provides detailed insights into user behavior, interaction patterns, and application usage through a comprehensive tracking system.
 
-Moveo One analytics is a user cognitive-behavioral analytics tool. moveo-analytics-react-native is an SDK for React Native client apps to use Moveo One tools.
+The library supports:
+- **Context-based tracking** for organizing user sessions
+- **Semantic grouping** for logical element organization
+- **Flexible metadata** for enhanced analytics
+- **Data processing** with configurable flush intervals
+- **Multiple event types and actions** for comprehensive interaction capture
+- **Pre-built components** for automatic tracking
 
 ## Quick Start Guide
 
-Moveo One React Native SDK is a pure JavaScript implementation of the Moveo One Analytics tracker.
-
-### 1. Install Moveo One Analytics
-
-#### Prerequisites
+### Prerequisites
 
 - React Native project
 - Node.js and npm installed
+- Moveo One API key (obtain from [Moveo One App](https://app.moveo.one/))
 
-#### Steps
+### Installation
 
-1. Install the package using npm:
+Install the package using npm:
 
 ```bash
 npm install moveo-one-analytics-react-native
 ```
 
-### 2. Initialize
+### Library Initialization
 
-Initialization should be done at your app's entry point. To obtain a token, please contact us at: info@moveo.one and request an API token. We are working on bringing token creation to our dashboard, but for now, due to the early phase, contact us and we will be happy to provide you with an API token.
+Initialize the library in your main App component:
 
-```javascript
+```jsx
 import { MoveoOne } from "moveo-one-analytics-react-native";
 
-// Initialize with your token
-const moveoInstance = MoveoOne.getInstance("<YOUR_TOKEN>");
+// Initialize with your API token
+const moveoInstance = MoveoOne.getInstance("YOUR_API_KEY");
 ```
 
-### 3. Setup
+### Setup
 
 Configure additional parameters as needed:
 
-```javascript
-// Enable logging for development
+```jsx
+// Set flush interval (5-60 seconds)
+moveoInstance.setFlushInterval(20000); // 20 seconds
+
+// Enable logging for debugging
 moveoInstance.setLogging(true);
-
-// Set flush interval (in milliseconds)
-moveoInstance.setFlushInterval(20000); // Valid range: 5000-60000 (5s to 1min)
 ```
 
-### 4. Track Data
+### Metadata and Additional Metadata
 
-#### Context Management
+The library supports two types of metadata management:
 
-A context represents a user interaction session, typically mapping to a screen or flow in your app:
+#### updateSessionMetadata()
 
-```javascript
-// Start tracking a context
-moveoInstance.start("checkout_flow", {
-  version: "1.0.0",
-  abTest: "variant_a",
+Updates current session metadata. Session metadata should split sessions by information that influences content or creates visually different variations of the same application. Sessions split by these parameters will be analyzed separately by our UX analyzer.
+
+**Session metadata examples:**
+- `sessionMetadata.put("test", "a");`
+- `sessionMetadata.put("locale", "eng");`
+- `sessionMetadata.put("app_version", "2.1.0");`
+
+#### updateAdditionalMetadata()
+
+Updates additional metadata for the session. This is used as data enrichment and enables specific queries or analysis by the defined split.
+
+**Additional metadata examples:**
+- `additionalMetadata.put("user_country", "US");`
+- `additionalMetadata.put("company", "example_company");`
+- `additionalMetadata.put("user_role", "admin"); // or "user", "manager", "viewer"`
+- `additionalMetadata.put("acquisition_channel", "organic"); // or "paid", "referral", "direct"`
+- `additionalMetadata.put("device_category", "mobile"); // or "desktop", "tablet"`
+- `additionalMetadata.put("subscription_plan", "pro"); // or "basic", "enterprise"`
+- `additionalMetadata.put("has_purchased", "true"); // or "false"`
+
+**Metadata Support in Track and Tick Events:**
+
+```jsx
+import { TYPE, ACTION } from 'moveo-one-analytics-react-native';
+
+// Track with metadata
+moveoInstance.track("checkout_screen", {
+  semanticGroup: "user_interactions",
+  id: "checkout_button",
+  type: TYPE.BUTTON,
+  action: ACTION.CLICK,
+  value: "proceed_to_payment",
+  metadata: {
+    test: "a",
+    locale: "eng"
+  }
 });
 
-// Update context metadata
-moveoInstance.updateSessionMetadata({
-  step: "payment_details",
-});
-```
-
-#### Tracking Events
-
-Track user interactions and view data:
-
-```javascript
-// Track a button click
-moveoInstance.track("checkout_flow", {
-  semanticGroup: "payment_section",
-  id: "submit_button",
-  type: "button",
-  action: "tap",
-  value: "submit",
-  metadata: { step: "final" },
-});
-
-// Track text view
+// Tick with metadata
 moveoInstance.tick({
-  semanticGroup: "payment_section",
-  id: "total_amount",
-  type: "text",
-  action: "appear",
-  value: "199.99",
-  metadata: { currency: "USD" },
+  semanticGroup: "content_interactions",
+  id: "product_card",
+  type: TYPE.CARD,
+  action: ACTION.APPEAR,
+  value: "product_view",
+  metadata: {
+    test: "a",
+    locale: "eng"
+  }
 });
 ```
 
-### 5. Obtain API KEY
+### Track Data
 
-Contact info@moveo.one to obtain your API key. Include your:
+#### Understanding start() Calls and Context
 
-- Company name
-- Project description
-- Expected usage volume
+**Single Session, Single Start**
 
-### 6. Use Results
+You **do not need multiple start() calls for multiple contexts**. The `start()` method is called only **once at the beginning of a session** and must be called before any `track()` or `tick()` calls.
 
-#### Data Format
-
-Events are sent to our API in the following format:
-
-```javascript
-{
-  events: [
-    {
-      c: "context_name",
-      type: "track",
-      userId: "user_123",
-      t: 1234567890,
-      prop: {
-        sg: "semantic_group",
-        eID: "element_id",
-        eA: "action",
-        eT: "type",
-        eV: "value",
-      },
-      meta: {
-        // Custom metadata
-      },
-      sId: "session_id",
-    },
-  ];
-}
+```jsx
+// Start session with context
+moveoInstance.start("main_app_flow", {
+  test: "a",
+  locale: "eng"
+});
 ```
 
-#### Dashboard Access
+#### When to Use Each Tracking Method
 
-Once your data is being tracked, you can access your analytics through:
+**Use track() when:**
+- You want to explicitly specify the event context
+- You need to change context between events
+- You want to use different context than one specified in start method
 
-1. Moveo One Dashboard https://app.moveo.one/
-2. Direct API access
-3. Webhook integrations
+```jsx
+import { TYPE, ACTION } from 'moveo-one-analytics-react-native';
 
-For more detailed documentation and support, please contact us at info@moveo.one
+moveoInstance.track("checkout_process", {
+  semanticGroup: "user_interactions",
+  id: "payment_button",
+  type: TYPE.BUTTON,
+  action: ACTION.CLICK,
+  value: "pay_now",
+  metadata: {}
+});
+```
+
+**Use tick() when:**
+- You're tracking events within the same context
+- You want tracking without explicitly defining context
+- You want to track events in same context specified in start method
+
+```jsx
+import { TYPE, ACTION } from 'moveo-one-analytics-react-native';
+
+moveoInstance.tick({
+  semanticGroup: "screen_0",
+  id: "text_view_1",
+  type: TYPE.TEXT,
+  action: ACTION.VIEW,
+  value: "welcome_message",
+  metadata: {}
+});
+```
+
+#### Context Definition
+
+- **Context** represents large, independent parts of the application and serves to divide the app into functional units that can exist independently of each other
+- Examples: `onboarding`, `main_app_flow`, `checkout_process`
+
+#### Semantic Groups
+
+- **Semantic groups** are logical units **within a context** that group related elements
+- Depending on the application, this could be a group of elements or an entire screen (most common)
+- Examples: `navigation`, `user_input`, `content_interaction`
+
+## Event Types and Actions
+
+### Available Event Types
+
+| Type | Description |
+|------|-------------|
+| `button` | Interactive buttons |
+| `text` | Text elements |
+| `textEdit` | Text input fields |
+| `image` | Single images |
+| `images` | Multiple images |
+| `image_scroll_horizontal` | Horizontal image scrolling |
+| `image_scroll_vertical` | Vertical image scrolling |
+| `picker` | Selection pickers |
+| `slider` | Slider controls |
+| `switchControl` | Toggle switches |
+| `progressBar` | Progress indicators |
+| `checkbox` | Checkbox controls |
+| `radioButton` | Radio button controls |
+| `table` | Table views |
+| `collection` | Collection views |
+| `segmentedControl` | Segmented controls |
+| `stepper` | Stepper controls |
+| `datePicker` | Date pickers |
+| `timePicker` | Time pickers |
+| `searchBar` | Search bars |
+| `webView` | Web view components |
+| `scrollView` | Scroll views |
+| `activityIndicator` | Loading indicators |
+| `video` | Video elements |
+| `videoPlayer` | Video players |
+| `audioPlayer` | Audio players |
+| `map` | Map components |
+| `tabBar` | Tab bar components |
+| `tabBarPage` | Tab bar pages |
+| `tabBarPageTitle` | Tab bar page titles |
+| `tabBarPageSubtitle` | Tab bar page subtitles |
+| `toolbar` | Toolbar components |
+| `alert` | Alert dialogs |
+| `alertTitle` | Alert titles |
+| `alertSubtitle` | Alert subtitles |
+| `modal` | Modal dialogs |
+| `toast` | Toast notifications |
+| `badge` | Badge elements |
+| `dropdown` | Dropdown menus |
+| `card` | Card components |
+| `chip` | Chip elements |
+| `grid` | Grid layouts |
+| `custom` | Custom elements |
+
+### Available Event Actions
+
+| Action | Description |
+|--------|-------------|
+| `click` | Element clicked |
+| `view` | Element viewed |
+| `appear` | Element appeared |
+| `disappear` | Element disappeared |
+| `swipe` | Swipe gesture |
+| `scroll` | Scroll action |
+| `drag` | Drag action |
+| `drop` | Drop action |
+| `tap` | Tap gesture |
+| `doubleTap` | Double tap gesture |
+| `longPress` | Long press gesture |
+| `pinch` | Pinch gesture |
+| `zoom` | Zoom action |
+| `rotate` | Rotate action |
+| `submit` | Form submission |
+| `select` | Selection action |
+| `deselect` | Deselection action |
+| `hover` | Hover action |
+| `focus` | Focus action |
+| `blur` | Blur action |
+| `input` | Input action |
+| `valueChange` | Value change |
+| `dragStart` | Drag start |
+| `dragEnd` | Drag end |
+| `load` | Load action |
+| `unload` | Unload action |
+| `refresh` | Refresh action |
+| `play` | Play action |
+| `pause` | Pause action |
+| `stop` | Stop action |
+| `seek` | Seek action |
+| `error` | Error action |
+| `success` | Success action |
+| `cancel` | Cancel action |
+| `retry` | Retry action |
+| `share` | Share action |
+| `open` | Open action |
+| `close` | Close action |
+| `expand` | Expand action |
+| `collapse` | Collapse action |
+| `edit` | Edit action |
+| `custom` | Custom action |
+
+## Comprehensive Example Usage
+
+Here's a complete example showing how to integrate Moveo Analytics in a React Native app:
+
+```jsx
+import React, { useEffect, useState } from 'react';
+import { 
+  View, 
+  Text, 
+  TouchableOpacity, 
+  StyleSheet, 
+  TextInput 
+} from 'react-native';
+import { 
+  MoveoOne, 
+  MoveoButton, 
+  MoveoText, 
+  MoveoTextInput,
+  MoveoFlatList,
+  TYPE,
+  ACTION 
+} from 'moveo-one-analytics-react-native';
+
+// Initialize Moveo once at app entry
+const moveoInstance = MoveoOne.getInstance("YOUR_API_KEY");
+
+export default function App() {
+  const [inputText, setInputText] = useState("");
+
+  useEffect(() => {
+    // Core initialization that should run once
+    moveoInstance.setLogging(true);
+    moveoInstance.setFlushInterval(20000);
+    
+    // Start session with context
+moveoInstance.start("main_screen", {
+  test: "a",
+  locale: "eng"
+});
+
+// Update additional metadata
+moveoInstance.updateAdditionalMetadata({
+  user_country: "US",
+  company: "example_company"
+});
+  }, []);
+
+  const handleButtonPress = (buttonName) => {
+    moveoInstance.track("main_screen", {
+      semanticGroup: "user_interactions",
+      id: "main_button",
+      type: TYPE.BUTTON,
+      action: ACTION.CLICK,
+      value: "primary_action",
+      metadata: {
+        source: "home_screen",
+        button: buttonName,
+      },
+    });
+    console.log(`${buttonName} clicked!`);
+  };
+
+  const handleInputSubmit = () => {
+    moveoInstance.track("main_screen", {
+      semanticGroup: "user_interactions",
+      id: "main_input",
+      type: TYPE.TEXT_EDIT,
+      action: ACTION.INPUT,
+      value: "text_entered",
+      metadata: {
+        source: "home_screen",
+        input_length: inputText.length,
+      },
+    });
+  };
+
+  return (
+    <View style={styles.mainContainer}>
+      <Text style={styles.title}>Moveo One</Text>
+      <View style={styles.contentContainer}>
+        <Text style={styles.paragraph}>
+          This is an example React Native app made for demo purposes.
+        </Text>
+        <View style={styles.buttonGroup}>
+          <TouchableOpacity
+            style={styles.button}
+            onPress={() => handleButtonPress("Button One")}
+          >
+            <Text style={styles.buttonText}>Button One</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.button, styles.secondaryButton]}
+            onPress={() => handleButtonPress("Button Two")}
+          >
+            <Text style={styles.buttonText}>Button Two</Text>
+          </TouchableOpacity>
+        </View>
+        <TextInput
+          style={styles.input}
+          onChangeText={setInputText}
+          value={inputText}
+          onSubmitEditing={handleInputSubmit}
+          placeholder="Type something..."
+          placeholderTextColor="#a0aec0"
+        />
+      </View>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  mainContainer: {
+    flex: 1,
+    backgroundColor: "#f0f8ff",
+    alignItems: "center",
+    paddingTop: 60,
+  },
+  title: {
+    fontSize: 32,
+    fontWeight: "700",
+    color: "#1a365d",
+    marginBottom: 40,
+    letterSpacing: 1.2,
+  },
+  contentContainer: {
+    backgroundColor: "white",
+    width: "85%",
+    borderRadius: 20,
+    padding: 25,
+    shadowColor: "#2b6cb0",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 5,
+  },
+  paragraph: {
+    fontSize: 16,
+    color: "#4a5568",
+    lineHeight: 24,
+    marginBottom: 30,
+    textAlign: "center",
+  },
+  buttonGroup: {
+    gap: 16,
+  },
+  button: {
+    backgroundColor: "#2b6cb0",
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: "center",
+    shadowColor: "#2b6cb0",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+  },
+  secondaryButton: {
+    backgroundColor: "#4299e1",
+  },
+  buttonText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  input: {
+    backgroundColor: "#ffffff",
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    fontSize: 16,
+    color: "#4a5568",
+    marginTop: 20,
+    shadowColor: "#2b6cb0",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+});
+```
+
+## Obtain API Key
+
+You can find your organization's API token in the [Moveo One App](https://app.moveo.one/). Navigate to your organization settings to retrieve your unique API key.
+
+## Dashboard Access
+
+Once your data is being tracked, you can access your analytics through [Moveo One Dashboard](https://app.moveo.one/). The dashboard provides comprehensive insights into user behavior, interaction patterns, and application performance.
+
+## Support
+
+For any issues or support, feel free to:
+
+- Open an **issue** on our [GitHub repository](https://github.com/divstechnologydev/moveo-analytics-react-native/issues)
+- Email us at [**info@moveo.one**](mailto:info@moveo.one)
+
+---
+
+**Note:** This library is designed for React Native applications and requires React Native 0.60.0 or later. Make sure to handle user privacy and data collection in compliance with relevant regulations.
