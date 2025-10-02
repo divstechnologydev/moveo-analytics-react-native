@@ -2,7 +2,7 @@
 
 <img src="https://www.moveo.one/assets/og_white.png" alt="Moveo Analytics Logo" width="200" />
 
-**Current version: 1.0.11**
+**Current version: 1.0.13**
 
 A powerful analytics library for React Native applications that provides comprehensive user interaction tracking and behavioral analysis through the Moveo One platform.
 
@@ -18,9 +18,10 @@ A powerful analytics library for React Native applications that provides compreh
    - [Track Data](#track-data)
 3. [Event Types and Actions](#event-types-and-actions)
 4. [Comprehensive Example Usage](#comprehensive-example-usage)
-5. [Obtain API Key](#obtain-api-key)
-6. [Dashboard Access](#dashboard-access)
-7. [Support](#support)
+5. [Prediction API](#prediction-api)
+6. [Obtain API Key](#obtain-api-key)
+7. [Dashboard Access](#dashboard-access)
+8. [Support](#support)
 
 ## Introduction
 
@@ -474,6 +475,197 @@ const styles = StyleSheet.create({
   },
 });
 ```
+
+## Prediction API
+
+The MoveoOne library includes a prediction method that allows you to get real-time predictions from your trained models using the current user's session data.
+
+### Basic Usage
+
+```jsx
+// Make sure to start a session first
+moveoInstance.start("app_context", {
+  version: "1.0.0",
+  environment: "production"
+});
+
+// Get prediction from a model
+const result = await moveoInstance.predict("your-model-id");
+
+if (result.success) {
+  console.log("Prediction probability:", result.prediction_probability);
+  console.log("Binary result:", result.prediction_binary);
+} else if (result.status === "pending") {
+  console.log("Model loading, please try again");
+} else {
+  console.log("Error:", result.message);
+}
+```
+
+### Prerequisites
+
+Before using the predict method, ensure:
+
+1. **Session is started**: Call `moveoInstance.start()` before making predictions
+2. **Valid token**: The MoveoOne instance must be initialized with a valid API token
+3. **Model access**: Your token must have access to the specified model
+
+### Method Signature
+
+```jsx
+async predict(modelId): Promise<PredictionResponse>
+```
+
+**Parameters:**
+- `modelId` (string, required): The ID of the model to use for prediction
+
+**Returns:** Promise that resolves to an object
+
+### Response Examples
+
+#### Successful Prediction
+
+```jsx
+{
+  success: true,
+  status: "success",
+  prediction_probability: 0.85,
+  prediction_binary: true
+}
+```
+
+#### Pending Model Loading
+
+```jsx
+{
+  success: false,
+  status: "pending",
+  message: "Model is loading, please try again"
+}
+```
+
+#### Error Responses
+
+**Invalid Model ID**
+```jsx
+{
+  success: false,
+  status: "invalid_model_id",
+  message: "Model ID is required and must be a non-empty string"
+}
+```
+
+**Not Initialized**
+```jsx
+{
+  success: false,
+  status: "not_initialized",
+  message: "MoveoOne must be initialized with a valid token before using predict method"
+}
+```
+
+**No Session Started**
+```jsx
+{
+  success: false,
+  status: "no_session",
+  message: "Session must be started before making predictions. Call start() method first."
+}
+```
+
+**Model Not Found**
+```jsx
+{
+  success: false,
+  status: "not_found",
+  message: "Model not found or not accessible"
+}
+```
+
+**Server Error**
+```jsx
+{
+  success: false,
+  status: "server_error",
+  message: "Server error processing prediction request"
+}
+```
+
+**Network Error**
+```jsx
+{
+  success: false,
+  status: "network_error",
+  message: "Network error - please check your connection"
+}
+```
+
+**Request Timeout**
+```jsx
+{
+  success: false,
+  status: "timeout",
+  message: "Request timed out after 10 seconds"
+}
+```
+
+### Advanced Usage Example
+
+```jsx
+async function getPersonalizedRecommendations(userId) {
+  try {
+    const prediction = await moveoInstance.predict(`recommendation-model-${userId}`);
+    
+    if (prediction.success) {
+      // Prediction completed successfully
+      if (prediction.prediction_binary) {
+        return {
+          showRecommendations: true,
+          confidence: prediction.prediction_probability
+        };
+      } else {
+        return {
+          showRecommendations: false,
+          reason: "Low confidence prediction"
+        };
+      }
+    } else if (prediction.status === "pending") {
+      // Model is still loading
+      console.log(prediction.message);
+      // Retry after a delay
+      return new Promise(resolve => {
+        setTimeout(async () => {
+          resolve(await getPersonalizedRecommendations(userId));
+        }, 2000);
+      });
+    } else {
+      // Handle errors
+      console.error(`Prediction failed: ${prediction.message}`);
+      return null;
+    }
+  } catch (error) {
+    console.error("Unexpected error during prediction:", error);
+    return null;
+  }
+}
+```
+
+### Error Handling Best Practices
+
+1. **Always check `success` property first** to determine if the operation completed successfully
+2. **Check `status` property** to understand the specific outcome (success, pending, error type)
+3. **Handle pending states** appropriately - models may need time to load
+4. **Implement retry logic** for pending states or network errors
+5. **Log errors** for debugging purposes
+6. **Provide fallback behavior** when predictions fail
+
+### Notes
+
+- The `predict` method is **non-blocking** and won't affect your application's performance
+- All requests have a 10-second timeout to prevent hanging
+- The method automatically uses the current session ID from the MoveoOne instance
+- **202 responses are normal pending states** - models may need time to load or validate
+- The method returns a Promise, so you can use async/await or `.then()/.catch()`
 
 ## Obtain API Key
 

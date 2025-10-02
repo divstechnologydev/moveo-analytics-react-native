@@ -1,6 +1,7 @@
 import axios from "axios";
 
 const API_URL = "https://api.moveo.one/api/analytic/event";
+const DOLPHIN_BASE_URL = "https://dolphin-prod-229920351162.europe-west1.run.app";
 
 import { version as LIB_VERSION } from "../package.json";
 
@@ -255,6 +256,158 @@ export class MoveoOne {
     }
 
     return properties;
+  }
+
+  /**
+   * Makes a prediction request to the Dolphin service
+   * @param {string} modelId - The model ID to use for prediction
+   * @returns {Promise<Object>} Promise that resolves to prediction result or error
+   */
+  async predict(modelId) {
+    // Validate model ID
+    if (typeof modelId !== "string" || modelId.trim() === "") {
+      return {
+        success: false,
+        status: "invalid_model_id",
+        message: "Model ID is required and must be a non-empty string"
+      };
+    }
+
+    // Check if token is available
+    if (!this.token || this.token.trim() === "") {
+      return {
+        success: false,
+        status: "not_initialized",
+        message: "MoveoOne must be initialized with a valid token before using predict method"
+      };
+    }
+
+    // Ensure session is started
+    if (!this.started || !this.sessionId) {
+      return {
+        success: false,
+        status: "no_session",
+        message: "Session must be started before making predictions. Call start() method first."
+      };
+    }
+
+    this.log(`predict - request for model: "${modelId}"`);
+    
+    try {
+      const timeoutMs = 10000; // 10 seconds
+      
+      const response = await axios({
+        method: "post",
+        url: `${DOLPHIN_BASE_URL}/api/models/${encodeURIComponent(modelId)}/predict`,
+        data: {
+          session_id: this.sessionId
+        },
+        headers: {
+          Authorization: this.token,
+          "Content-Type": "application/json"
+        },
+        timeout: timeoutMs
+      });
+
+      this.log(`predict - response for model "${modelId}":`, response.data);
+      
+      const { data, status } = response;
+      
+      // Handle 202 responses (pending states)
+      if (status === 202) {
+        return {
+          success: false,
+          status: "pending",
+          message: data.message || "Model is loading, please try again"
+        };
+      }
+      
+      // Handle successful prediction (200)
+      if (status === 200 && data) {
+        return {
+          success: true,
+          status: "success",
+          prediction_probability: data.prediction_probability,
+          prediction_binary: data.prediction_binary
+        };
+      }
+      
+      // Handle unexpected response format
+      return {
+        success: false,
+        status: "server_error",
+        message: "Unexpected server response"
+      };
+
+    } catch (error) {
+      
+      this.log(`predict - error for model "${modelId}":`, error.message);
+      
+      if (error.code === "ECONNABORTED" || error.message.includes("timeout")) {
+        return {
+          success: false,
+          status: "timeout",
+          message: "Request timed out after 10 seconds"
+        };
+      }
+
+      if (error.response) {
+        const { status, data } = error.response;
+        
+        switch (status) {
+          case 401:
+            return {
+              success: false,
+              status: "unauthorized",
+              message: "Authentication token is invalid or expired"
+            };
+          case 403:
+            return {
+              success: false,
+              status: "forbidden",
+              message: "Access denied to this model"
+            };
+          case 404:
+            return {
+              success: false,
+              status: "not_found",
+              message: "Model not found or not accessible"
+            };
+          case 422:
+            return {
+              success: false,
+              status: "invalid_data",
+              message: data.detail || "Invalid prediction data"
+            };
+          case 500:
+            return {
+              success: false,
+              status: "server_error",
+              message: "Server error processing prediction request"
+            };
+          default:
+            return {
+              success: false,
+              status: "server_error",
+              message: data.detail || `Server error with status ${status}`
+            };
+        }
+      }
+
+      if (error.request) {
+        return {
+          success: false,
+          status: "network_error",
+          message: "Network error - please check your connection"
+        };
+      }
+
+      return {
+        success: false,
+        status: "unknown_error",
+        message: error.message || "An unexpected error occurred"
+      };
+    }
   }
 
   generateUUID() {
