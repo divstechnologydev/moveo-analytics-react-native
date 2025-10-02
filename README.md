@@ -614,7 +614,7 @@ async predict(modelId): Promise<PredictionResponse>
 {
   success: false,
   status: "timeout",
-  message: "Request timed out after 100ms"
+  message: "Request timed out after 150ms"
 }
 ```
 
@@ -654,7 +654,7 @@ async function getPersonalizedRecommendations(userId) {
 ### Notes
 
 - The `predict` method is **non-blocking** and won't affect your application's performance
-- All requests have a 100ms timeout to prevent hanging
+- All requests have a 150ms timeout to prevent hanging
 - The method automatically uses the current session ID from the MoveoOne instance
 - The method returns a Promise, so you can use async/await or `.then()/.catch()`
 

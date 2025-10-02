@@ -294,12 +294,13 @@ export class MoveoOne {
     this.log(`predict - request for model: "${modelId}"`);
     
     try {
-      const timeoutMs = 100; // 100ms
+      const timeoutMs = 150; // 150ms
       
       const response = await axios({
         method: "post",
         url: `${DOLPHIN_BASE_URL}/api/models/${encodeURIComponent(modelId)}/predict`,
         data: {
+          events: this.buffer,
           session_id: this.sessionId
         },
         headers: {
@@ -347,7 +348,7 @@ export class MoveoOne {
         return {
           success: false,
           status: "timeout",
-          message: "Request timed out after 100ms"
+          message: "Request timed out after 150ms"
         };
       }
 
