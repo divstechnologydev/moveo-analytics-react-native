@@ -294,7 +294,7 @@ export class MoveoOne {
     this.log(`predict - request for model: "${modelId}"`);
     
     try {
-      const timeoutMs = 10000; // 10 seconds
+      const timeoutMs = 5000; // 5 seconds
       
       const response = await axios({
         method: "post",
@@ -347,7 +347,7 @@ export class MoveoOne {
         return {
           success: false,
           status: "timeout",
-          message: "Request timed out after 10 seconds"
+          message: "Request timed out after 5 seconds"
         };
       }
 

@@ -142,12 +142,6 @@ export const HomeScreen = ({ moveoInstance }) => {
           `Confidence: ${(result.prediction_probability * 100).toFixed(1)}%\nBinary Result: ${result.prediction_binary ? 'YES' : 'NO'}`,
           [{ text: "OK" }]
         );
-      } else if (result.status === "pending") {
-        Alert.alert(
-          "Model Loading",
-          "The model is currently loading. Please try again in a few moments.",
-          [{ text: "OK" }]
-        );
       } else {
         Alert.alert("Prediction Error", result.message, [{ text: "OK" }]);
       }

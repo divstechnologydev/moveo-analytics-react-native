@@ -605,7 +605,7 @@ async predict(modelId): Promise<PredictionResponse>
 {
   success: false,
   status: "timeout",
-  message: "Request timed out after 10 seconds"
+  message: "Request timed out after 5 seconds"
 }
 ```
 
@@ -629,17 +629,8 @@ async function getPersonalizedRecommendations(userId) {
           reason: "Low confidence prediction"
         };
       }
-    } else if (prediction.status === "pending") {
-      // Model is still loading
-      console.log(prediction.message);
-      // Retry after a delay
-      return new Promise(resolve => {
-        setTimeout(async () => {
-          resolve(await getPersonalizedRecommendations(userId));
-        }, 2000);
-      });
     } else {
-      // Handle errors
+      // Handle all errors and pending states
       console.error(`Prediction failed: ${prediction.message}`);
       return null;
     }
@@ -650,21 +641,12 @@ async function getPersonalizedRecommendations(userId) {
 }
 ```
 
-### Error Handling Best Practices
-
-1. **Always check `success` property first** to determine if the operation completed successfully
-2. **Check `status` property** to understand the specific outcome (success, pending, error type)
-3. **Handle pending states** appropriately - models may need time to load
-4. **Implement retry logic** for pending states or network errors
-5. **Log errors** for debugging purposes
-6. **Provide fallback behavior** when predictions fail
 
 ### Notes
 
 - The `predict` method is **non-blocking** and won't affect your application's performance
-- All requests have a 10-second timeout to prevent hanging
+- All requests have a 5-second timeout to prevent hanging
 - The method automatically uses the current session ID from the MoveoOne instance
-- **202 responses are normal pending states** - models may need time to load or validate
 - The method returns a Promise, so you can use async/await or `.then()/.catch()`
 
 ## Obtain API Key
