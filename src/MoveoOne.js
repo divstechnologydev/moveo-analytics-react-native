@@ -319,7 +319,7 @@ export class MoveoOne {
         return {
           success: false,
           status: "pending",
-          message: data.message || "Model is loading, please try again"
+          message: data.message || "Model is loading"
         };
       }
       

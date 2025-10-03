@@ -495,8 +495,6 @@ const result = await moveoInstance.predict("your-model-id");
 if (result.success) {
   console.log("Prediction probability:", result.prediction_probability);
   console.log("Binary result:", result.prediction_binary);
-} else if (result.status === "pending") {
-  console.log("Model loading, please try again");
 } else {
   console.log("Error:", result.message);
 }
@@ -540,7 +538,7 @@ async predict(modelId): Promise<PredictionResponse>
 {
   success: false,
   status: "pending",
-  message: "Model is loading, please try again"
+  message: "Model is loading"
 }
 ```
 
