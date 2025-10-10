@@ -612,7 +612,7 @@ async predict(modelId): Promise<PredictionResponse>
 {
   success: false,
   status: "timeout",
-  message: "Request timed out after 150ms"
+  message: "Request timed out after 400ms"
 }
 ```
 
@@ -649,12 +649,36 @@ async function getPersonalizedRecommendations(userId) {
 ```
 
 
+### Latency Tracking
+
+The library includes built-in latency tracking for prediction requests. This feature helps monitor performance and execution times of your prediction models.
+
+#### Configuration
+
+```jsx
+// Enable latency tracking (default: true)
+moveoInstance.calculateLatency(true);
+
+// Disable latency tracking
+moveoInstance.calculateLatency(false);
+```
+
+#### How It Works
+
+When latency tracking is enabled, the library automatically:
+
+1. **Measures execution time** from when the prediction request is sent until the response is received
+2. **Sends latency data asynchronously** to the service after returning the prediction result to your application
+3. **Tracks all scenarios** including successful predictions, errors, timeouts, and pending states
+4. **Does not affect performance** - latency tracking runs in the background and doesn't impact response times
+
 ### Notes
 
 - The `predict` method is **non-blocking** and won't affect your application's performance
-- All requests have a 150ms timeout to prevent hanging
+- All requests have a 400ms timeout to prevent hanging
 - The method automatically uses the current session ID from the MoveoOne instance
 - The method returns a Promise, so you can use async/await or `.then()/.catch()`
+- **Latency tracking is enabled by default** and runs asynchronously in the background
 
 ## Obtain API Key
 
