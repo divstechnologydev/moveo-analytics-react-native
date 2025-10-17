@@ -111,11 +111,7 @@ moveoInstance.track("checkout_screen", {
   id: "checkout_button",
   type: TYPE.BUTTON,
   action: ACTION.CLICK,
-  value: "proceed_to_payment",
-  metadata: {
-    test: "a",
-    locale: "eng"
-  }
+  value: "proceed_to_payment"
 });
 
 // Tick with metadata
@@ -124,11 +120,7 @@ moveoInstance.tick({
   id: "product_card",
   type: TYPE.CARD,
   action: ACTION.APPEAR,
-  value: "product_view",
-  metadata: {
-    test: "a",
-    locale: "eng"
-  }
+  value: "product_view"
 });
 ```
 
@@ -163,8 +155,7 @@ moveoInstance.track("checkout_process", {
   id: "payment_button",
   type: TYPE.BUTTON,
   action: ACTION.CLICK,
-  value: "pay_now",
-  metadata: {}
+  value: "pay_now"
 });
 ```
 
@@ -181,8 +172,7 @@ moveoInstance.tick({
   id: "text_view_1",
   type: TYPE.TEXT,
   action: ACTION.VIEW,
-  value: "welcome_message",
-  metadata: {}
+  value: "welcome_message"
 });
 ```
 
@@ -347,11 +337,7 @@ moveoInstance.updateAdditionalMetadata({
       id: "main_button",
       type: TYPE.BUTTON,
       action: ACTION.CLICK,
-      value: "primary_action",
-      metadata: {
-        source: "home_screen",
-        button: buttonName,
-      },
+      value: "primary_action"
     });
     console.log(`${buttonName} clicked!`);
   };
@@ -362,11 +348,7 @@ moveoInstance.updateAdditionalMetadata({
       id: "main_input",
       type: TYPE.TEXT_EDIT,
       action: ACTION.INPUT,
-      value: "text_entered",
-      metadata: {
-        source: "home_screen",
-        input_length: inputText.length,
-      },
+      value: "text_entered"
     });
   };
 
