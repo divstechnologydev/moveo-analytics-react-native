@@ -571,6 +571,15 @@ async predict(modelId): Promise<PredictionResponse>
 }
 ```
 
+**Target Already Reached**
+```jsx
+{
+  success: false,
+  status: "target_already_reached",
+  message: "Completion target already reached - prediction not applicable"
+}
+```
+
 **Server Error**
 ```jsx
 {

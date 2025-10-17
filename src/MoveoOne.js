@@ -453,11 +453,20 @@ export class MoveoOne {
             };
             break;
           case 422:
-            result = {
-              success: false,
-              status: "invalid_data",
-              message: data.detail || "Invalid prediction data"
-            };
+            // Check if this is a TargetAlreadyReachedError
+            if (data.detail && data.detail.includes("Completion target already reached")) {
+              result = {
+                success: false,
+                status: "target_already_reached",
+                message: "Completion target already reached - prediction not applicable"
+              };
+            } else {
+              result = {
+                success: false,
+                status: "invalid_data",
+                message: data.detail || "Invalid prediction data"
+              };
+            }
             break;
           case 500:
             result = {
