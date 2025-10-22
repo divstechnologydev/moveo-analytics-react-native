@@ -1,6 +1,7 @@
 import axios from "axios";
 
 const API_URL = "https://api.moveo.one/api/analytic/event";
+const DOLPHIN_BASE_URL = "https://dolphin-prod-229920351162.europe-west1.run.app";
 
 import { version as LIB_VERSION } from "../package.json";
 
@@ -21,6 +22,7 @@ export class MoveoOne {
     this.context = "";
     this.sessionId = "";
     this.customPush = false;
+    this.calculateLatencyFlag = true; // Default to true
   }
 
   static getInstance(token) {
@@ -52,6 +54,10 @@ export class MoveoOne {
 
   isCustomFlush() {
     return this.customPush;
+  }
+
+  calculateLatency(enabled) {
+    this.calculateLatencyFlag = enabled;
   }
 
   start(context, metadata = {}) {
@@ -197,6 +203,33 @@ export class MoveoOne {
       .catch((error) => this.log(error));
   }
 
+  async sendLatencyData(modelId, totalExecutionTimeMs, latencyData = {}) {
+    try {
+      const latencyRequest = {
+        model_id: modelId,
+        session_id: this.sessionId,
+        client: "react-native",
+        total_execution_time_ms: totalExecutionTimeMs,
+        latency_data: latencyData
+      };
+
+      await axios.post(
+        `${DOLPHIN_BASE_URL}/api/prediction-latency`,
+        latencyRequest,
+        {
+          headers: {
+            Authorization: this.token,
+            "Content-Type": "application/json"
+          },
+          timeout: 5000 // 5 second timeout for latency tracking
+        }
+      );
+
+    } catch (error) {
+      this.log(`Failed to send latency data for model "${modelId}":`, error.message);
+    }
+  }
+
   setFlushTimeout() {
     this.log("setting flush timeout");
     this.flushTimeout = setTimeout(() => {
@@ -255,6 +288,237 @@ export class MoveoOne {
     }
 
     return properties;
+  }
+
+  /**
+   * Makes a prediction request to the Dolphin service
+   * @param {string} modelId - The model ID to use for prediction
+   * @returns {Promise<Object>} Promise that resolves to prediction result or error
+   */
+  async predict(modelId) {
+    // Validate model ID
+    if (typeof modelId !== "string" || modelId.trim() === "") {
+      return {
+        success: false,
+        status: "invalid_model_id",
+        message: "Model ID is required and must be a non-empty string"
+      };
+    }
+
+    // Check if token is available
+    if (!this.token || this.token.trim() === "") {
+      return {
+        success: false,
+        status: "not_initialized",
+        message: "MoveoOne must be initialized with a valid token before using predict method"
+      };
+    }
+
+    // Ensure session is started
+    if (!this.started || !this.sessionId) {
+      return {
+        success: false,
+        status: "no_session",
+        message: "Session must be started before making predictions. Call start() method first."
+      };
+    }
+    
+    // Record start time for latency calculation
+    const startTime = performance.now();
+    
+    try {
+      const timeoutMs = 400; // 400ms
+      
+      const response = await axios({
+        method: "post",
+        url: `${DOLPHIN_BASE_URL}/api/models/${encodeURIComponent(modelId)}/predict`,
+        data: {
+          events: this.buffer,
+          session_id: this.sessionId
+        },
+        headers: {
+          Authorization: this.token,
+          "Content-Type": "application/json"
+        },
+        timeout: timeoutMs
+      });
+      
+      const { data, status } = response;
+      
+      // Calculate execution time
+      const endTime = performance.now();
+      const totalExecutionTimeMs = Math.round(endTime - startTime);
+      
+      // Handle 202 responses (pending states)
+      if (status === 202) {
+        const result = {
+          success: false,
+          status: "pending",
+          message: data.message || "Model is loading"
+        };
+        
+        // Send latency data asynchronously if enabled
+        if (this.calculateLatencyFlag) {
+          this.sendLatencyData(modelId, totalExecutionTimeMs, {}).catch(() => {});
+        }
+        
+        return result;
+      }
+      
+      // Handle successful prediction (200)
+      if (status === 200 && data) {
+        const result = {
+          success: true,
+          status: "success",
+          prediction_probability: data.prediction_probability,
+          prediction_binary: data.prediction_binary
+        };
+        
+        // Send latency data asynchronously if enabled
+        if (this.calculateLatencyFlag) {
+          this.sendLatencyData(modelId, totalExecutionTimeMs, {}).catch(() => {});
+        }
+        
+        return result;
+      }
+      
+      // Handle unexpected response format
+      const result = {
+        success: false,
+        status: "server_error",
+        message: "Unexpected server response"
+      };
+      
+      // Send latency data asynchronously if enabled
+      if (this.calculateLatencyFlag) {
+        this.sendLatencyData(modelId, totalExecutionTimeMs, {}).catch(() => {});
+      }
+      
+      return result;
+
+    } catch (error) {
+      
+      this.log(`predict - error for model "${modelId}":`, error.message);
+      
+      // Calculate execution time for error cases
+      const endTime = performance.now();
+      const totalExecutionTimeMs = Math.round(endTime - startTime);
+      
+      if (error.code === "ECONNABORTED" || error.message.includes("timeout")) {
+        const result = {
+          success: false,
+          status: "timeout",
+          message: "Request timed out after 400ms"
+        };
+        
+        // Send latency data asynchronously if enabled (including timeout)
+        if (this.calculateLatencyFlag) {
+          this.sendLatencyData(modelId, totalExecutionTimeMs, {}).catch(() => {});
+        }
+        
+        return result;
+      }
+
+      if (error.response) {
+        const { status, data } = error.response;
+        
+        let result;
+        switch (status) {
+          case 401:
+            result = {
+              success: false,
+              status: "unauthorized",
+              message: "Authentication token is invalid or expired"
+            };
+            break;
+          case 403:
+            result = {
+              success: false,
+              status: "forbidden",
+              message: "Access denied to this model"
+            };
+            break;
+          case 404:
+            result = {
+              success: false,
+              status: "not_found",
+              message: "Model not found or not accessible"
+            };
+            break;
+          case 409:
+            result = {
+              success: false,
+              status: "conflict",
+              message: "Conditional event not found for prediction"
+            };
+            break;
+          case 422:
+            // Check if this is a TargetAlreadyReachedError
+            if (data.detail && data.detail.includes("Completion target already reached")) {
+              result = {
+                success: false,
+                status: "target_already_reached",
+                message: "Completion target already reached - prediction not applicable"
+              };
+            } else {
+              result = {
+                success: false,
+                status: "invalid_data",
+                message: data.detail || "Invalid prediction data"
+              };
+            }
+            break;
+          case 500:
+            result = {
+              success: false,
+              status: "server_error",
+              message: "Server error processing prediction request"
+            };
+            break;
+          default:
+            result = {
+              success: false,
+              status: "server_error",
+              message: data.detail || `Server error with status ${status}`
+            };
+        }
+        
+        // Send latency data asynchronously if enabled
+        if (this.calculateLatencyFlag) {
+          this.sendLatencyData(modelId, totalExecutionTimeMs, {}).catch(() => {});
+        }
+        
+        return result;
+      }
+
+      if (error.request) {
+        const result = {
+          success: false,
+          status: "network_error",
+          message: "Network error - please check your connection"
+        };
+        
+        // Send latency data asynchronously if enabled
+        if (this.calculateLatencyFlag) {
+          this.sendLatencyData(modelId, totalExecutionTimeMs, {}).catch(() => {});
+        }
+        
+        return result;
+      }
+
+      const result = {
+        success: false,
+        status: "unknown_error",
+        message: error.message || "An unexpected error occurred"
+      };
+      
+      // Send latency data asynchronously if enabled
+      if (this.calculateLatencyFlag) {
+        this.sendLatencyData(modelId, totalExecutionTimeMs, {}).catch(() => {});
+      }
+      
+      return result;
+    }
   }
 
   generateUUID() {

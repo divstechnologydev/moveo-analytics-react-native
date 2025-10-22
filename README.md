@@ -2,7 +2,7 @@
 
 <img src="https://www.moveo.one/assets/og_white.png" alt="Moveo Analytics Logo" width="200" />
 
-**Current version: 1.0.11**
+**Current version: 1.0.13**
 
 A powerful analytics library for React Native applications that provides comprehensive user interaction tracking and behavioral analysis through the Moveo One platform.
 
@@ -18,9 +18,10 @@ A powerful analytics library for React Native applications that provides compreh
    - [Track Data](#track-data)
 3. [Event Types and Actions](#event-types-and-actions)
 4. [Comprehensive Example Usage](#comprehensive-example-usage)
-5. [Obtain API Key](#obtain-api-key)
-6. [Dashboard Access](#dashboard-access)
-7. [Support](#support)
+5. [Prediction API](#prediction-api)
+6. [Obtain API Key](#obtain-api-key)
+7. [Dashboard Access](#dashboard-access)
+8. [Support](#support)
 
 ## Introduction
 
@@ -110,11 +111,7 @@ moveoInstance.track("checkout_screen", {
   id: "checkout_button",
   type: TYPE.BUTTON,
   action: ACTION.CLICK,
-  value: "proceed_to_payment",
-  metadata: {
-    test: "a",
-    locale: "eng"
-  }
+  value: "proceed_to_payment"
 });
 
 // Tick with metadata
@@ -123,11 +120,7 @@ moveoInstance.tick({
   id: "product_card",
   type: TYPE.CARD,
   action: ACTION.APPEAR,
-  value: "product_view",
-  metadata: {
-    test: "a",
-    locale: "eng"
-  }
+  value: "product_view"
 });
 ```
 
@@ -162,8 +155,7 @@ moveoInstance.track("checkout_process", {
   id: "payment_button",
   type: TYPE.BUTTON,
   action: ACTION.CLICK,
-  value: "pay_now",
-  metadata: {}
+  value: "pay_now"
 });
 ```
 
@@ -180,8 +172,7 @@ moveoInstance.tick({
   id: "text_view_1",
   type: TYPE.TEXT,
   action: ACTION.VIEW,
-  value: "welcome_message",
-  metadata: {}
+  value: "welcome_message"
 });
 ```
 
@@ -346,11 +337,7 @@ moveoInstance.updateAdditionalMetadata({
       id: "main_button",
       type: TYPE.BUTTON,
       action: ACTION.CLICK,
-      value: "primary_action",
-      metadata: {
-        source: "home_screen",
-        button: buttonName,
-      },
+      value: "primary_action"
     });
     console.log(`${buttonName} clicked!`);
   };
@@ -361,11 +348,7 @@ moveoInstance.updateAdditionalMetadata({
       id: "main_input",
       type: TYPE.TEXT_EDIT,
       action: ACTION.INPUT,
-      value: "text_entered",
-      metadata: {
-        source: "home_screen",
-        input_length: inputText.length,
-      },
+      value: "text_entered"
     });
   };
 
@@ -474,6 +457,219 @@ const styles = StyleSheet.create({
   },
 });
 ```
+
+## Prediction API
+
+The MoveoOne library includes a prediction method that allows you to get real-time predictions from your trained models using the current user's session data.
+
+### Basic Usage
+
+```jsx
+// Make sure to start a session first
+moveoInstance.start("app_context", {
+  version: "1.0.0",
+  environment: "production"
+});
+
+// Get prediction from a model
+const result = await moveoInstance.predict("your-model-id");
+
+if (result.success) {
+  console.log("Prediction probability:", result.prediction_probability);
+  console.log("Binary result:", result.prediction_binary);
+} else {
+  console.log("Error:", result.message);
+}
+```
+
+### Prerequisites
+
+Before using the predict method, ensure:
+
+1. **Session is started**: Call `moveoInstance.start()` before making predictions
+2. **Valid token**: The MoveoOne instance must be initialized with a valid API token
+3. **Model access**: Your token must have access to the specified model
+
+### Method Signature
+
+```jsx
+async predict(modelId): Promise<PredictionResponse>
+```
+
+**Parameters:**
+- `modelId` (string, required): The ID of the model to use for prediction
+
+**Returns:** Promise that resolves to an object
+
+### Response Examples
+
+#### Successful Prediction
+
+```jsx
+{
+  success: true,
+  status: "success",
+  prediction_probability: 0.85,
+  prediction_binary: true
+}
+```
+
+#### Pending Model Loading
+
+```jsx
+{
+  success: false,
+  status: "pending",
+  message: "Model is loading"
+}
+```
+
+#### Error Responses
+
+**Invalid Model ID**
+```jsx
+{
+  success: false,
+  status: "invalid_model_id",
+  message: "Model ID is required and must be a non-empty string"
+}
+```
+
+**Not Initialized**
+```jsx
+{
+  success: false,
+  status: "not_initialized",
+  message: "MoveoOne must be initialized with a valid token before using predict method"
+}
+```
+
+**No Session Started**
+```jsx
+{
+  success: false,
+  status: "no_session",
+  message: "Session must be started before making predictions. Call start() method first."
+}
+```
+
+**Model Not Found**
+```jsx
+{
+  success: false,
+  status: "not_found",
+  message: "Model not found or not accessible"
+}
+```
+
+**Conflict**
+```jsx
+{
+  success: false,
+  status: "conflict",
+  message: "Conditional event not found for prediction"
+}
+```
+
+**Target Already Reached**
+```jsx
+{
+  success: false,
+  status: "target_already_reached",
+  message: "Completion target already reached - prediction not applicable"
+}
+```
+
+**Server Error**
+```jsx
+{
+  success: false,
+  status: "server_error",
+  message: "Server error processing prediction request"
+}
+```
+
+**Network Error**
+```jsx
+{
+  success: false,
+  status: "network_error",
+  message: "Network error - please check your connection"
+}
+```
+
+**Request Timeout**
+```jsx
+{
+  success: false,
+  status: "timeout",
+  message: "Request timed out after 400ms"
+}
+```
+
+### Advanced Usage Example
+
+```jsx
+async function getPersonalizedRecommendations(userId) {
+  try {
+    const prediction = await moveoInstance.predict(`recommendation-model-${userId}`);
+    
+    if (prediction.success) {
+      // Prediction completed successfully
+      if (prediction.prediction_binary) {
+        return {
+          showRecommendations: true,
+          confidence: prediction.prediction_probability
+        };
+      } else {
+        return {
+          showRecommendations: false,
+          reason: "Low confidence prediction"
+        };
+      }
+    } else {
+      // Handle all errors and pending states
+      console.error(`Prediction failed: ${prediction.message}`);
+      return null;
+    }
+  } catch (error) {
+    console.error("Unexpected error during prediction:", error);
+    return null;
+  }
+}
+```
+
+
+### Latency Tracking
+
+The library includes built-in latency tracking for prediction requests. This feature helps monitor performance and execution times of your prediction models.
+
+#### Configuration
+
+```jsx
+// Enable latency tracking (default: true)
+moveoInstance.calculateLatency(true);
+
+// Disable latency tracking
+moveoInstance.calculateLatency(false);
+```
+
+#### How It Works
+
+When latency tracking is enabled, the library automatically:
+
+1. **Measures execution time** from when the prediction request is sent until the response is received
+2. **Sends latency data asynchronously** to the service after returning the prediction result to your application
+3. **Tracks all scenarios** including successful predictions, errors, timeouts, and pending states
+4. **Does not affect performance** - latency tracking runs in the background and doesn't impact response times
+
+### Notes
+
+- The `predict` method is **non-blocking** and won't affect your application's performance
+- All requests have a 400ms timeout to prevent hanging
+- The method automatically uses the current session ID from the MoveoOne instance
+- The method returns a Promise, so you can use async/await or `.then()/.catch()`
+- **Latency tracking is enabled by default** and runs asynchronously in the background
 
 ## Obtain API Key
 
